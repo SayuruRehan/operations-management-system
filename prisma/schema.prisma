@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CourseCategory {
+  TVEC_REGISTERED
+  NON_TVEC_REGISTERED
+  NVQ_COURSES
+  EXAMS
+}
+
+enum EmployeeRole {
+  ADMIN
+  COURSE_COORDINATOR
+  VISITING_LECTURER
+  IN_HOUSE_LECTURER
+  STUDENT_COUNSELOR
+}
+
+enum BatchStatus {
+  PLANNED
+  STARTED
+  LOCKED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  PAID
+  WAITING
+  JOINED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Course {
+  id          String         @id @default(cuid())
+  courseName  String
+  category    CourseCategory
+  courseFee   Float
+  duration    String
+  registrations Registration[]
+  batches     Batch[]
+  payments    Payment[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Student {
+  id            String         @id @default(cuid())
+  name          String
+  nic           String         @unique
+  email         String         @unique
+  address       String
+  whatsappNumber String
+  paymentDue    Float          @default(0)
+  status        String
+  registrations Registration[]
+  payments      Payment[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Employee {
+  id            String       @id @default(cuid())
+  empName       String
+  role          EmployeeRole
+  dateJoined    DateTime
+  email         String       @unique
+  password      String
+  contactNumber String
+  batches       Batch[]      @relation("BatchLecturer")
+  coordinations Batch[]      @relation("BatchCoordinator")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Batch {
+  id            String      @id @default(cuid())
+  batchCode     String      @unique
+  branch        String
+  course        Course      @relation(fields: [courseId], references: [id])
+  courseId      String
+  lecturer      Employee    @relation("BatchLecturer", fields: [lecturerId], references: [id])
+  lecturerId    String
+  coordinator   Employee    @relation("BatchCoordinator", fields: [coordinatorId], references: [id])
+  coordinatorId String
+  noOfStudents  Int
+  plannedDate   DateTime
+  startDate     DateTime?
+  lockedDate    DateTime?
+  status        BatchStatus
+  registrations Registration[]
+  payments      Payment[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Registration {
+  id            String            @id @default(cuid())
+  student       Student           @relation(fields: [studentId], references: [id])
+  studentId     String
+  course        Course            @relation(fields: [courseId], references: [id])
+  courseId      String
+  batch         Batch             @relation(fields: [batchId], references: [id])
+  batchId       String
+  paymentType   String
+  paymentMethod String
+  status        RegistrationStatus
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  student       Student       @relation(fields: [studentId], references: [id])
+  studentId     String
+  batch         Batch         @relation(fields: [batchId], references: [id])
+  batchId       String
+  course        Course        @relation(fields: [courseId], references: [id])
+  courseId      String
+  paymentDate   DateTime
+  paymentAmount Float
+  status        PaymentStatus
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model User {
+  id       String   @id @default(cuid())
+  name     String?
+  email    String   @unique
+  password String
+  role     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
